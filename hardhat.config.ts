@@ -24,7 +24,7 @@ const config: HardhatUserConfig = {
     },
     cypress: {
       chainId: 8217,
-      url: 'https://klaytn.blockpi.network/v1/rpc/public',
+      url: 'https://public-en-cypress.klaytn.net',
       gasPrice: 250000000000,
       accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
     },
