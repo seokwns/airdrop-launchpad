@@ -4,12 +4,13 @@ import { ethers } from 'ethers';
 
 const {
   KLAYTN_BAOBAB_URL,
+  KLAYTN_CYPRESS_URL,
   PRIVATE_KEY = '',
   TOKEN_ADDRESS = '',
   AIRDROP_ADDRESS = '',
 } = process.env;
 
-const caver = new Caver(KLAYTN_BAOBAB_URL);
+const caver = new Caver(KLAYTN_CYPRESS_URL);
 
 const abi = [
   {
@@ -32,6 +33,32 @@ const abi = [
     ],
     stateMutability: 'nonpayable',
     type: 'constructor',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'newEndTime',
+        type: 'uint256',
+      },
+    ],
+    name: 'AirdropEndTimeUpdated',
+    type: 'event',
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: false,
+        internalType: 'uint256',
+        name: 'newStartTime',
+        type: 'uint256',
+      },
+    ],
+    name: 'AirdropStartTimeUpdated',
+    type: 'event',
   },
   {
     anonymous: false,
@@ -135,9 +162,9 @@ const abi = [
       {
         components: [
           {
-            internalType: 'bool',
-            name: 'claimable',
-            type: 'bool',
+            internalType: 'enum AirDrop.ClaimStatus',
+            name: 'status',
+            type: 'uint8',
           },
           {
             internalType: 'uint256',
@@ -146,7 +173,7 @@ const abi = [
           },
         ],
         internalType: 'struct AirDrop.AirdropData',
-        name: 'airdropData',
+        name: '',
         type: 'tuple',
       },
     ],
@@ -169,6 +196,32 @@ const abi = [
     name: 'insertAirdropData',
     outputs: [],
     stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'isEnded',
+    outputs: [
+      {
+        internalType: 'bool',
+        name: '',
+        type: 'bool',
+      },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    inputs: [],
+    name: 'isStarted',
+    outputs: [
+      {
+        internalType: 'bool',
+        name: '',
+        type: 'bool',
+      },
+    ],
+    stateMutability: 'view',
     type: 'function',
   },
   {
@@ -238,9 +291,21 @@ const abi = [
         type: 'address',
       },
       {
-        internalType: 'uint256',
-        name: '_amount',
-        type: 'uint256',
+        components: [
+          {
+            internalType: 'enum AirDrop.ClaimStatus',
+            name: 'status',
+            type: 'uint8',
+          },
+          {
+            internalType: 'uint256',
+            name: 'amount',
+            type: 'uint256',
+          },
+        ],
+        internalType: 'struct AirDrop.AirdropData',
+        name: '_airdropData',
+        type: 'tuple',
       },
     ],
     name: 'updateAirdropData',
@@ -283,6 +348,8 @@ async function main() {
   console.log();
 
   const airdrop = new caver.klay.Contract(abi as AbiItem[], AIRDROP_ADDRESS);
+  const tokenInstance = new caver.kct.kip7(TOKEN_ADDRESS);
+
   airdrop.methods.getAirdropData(keyring.address).call((err: any, res: any) => {
     if (err) {
       console.error(err);
@@ -293,7 +360,10 @@ async function main() {
 
   // airdrop.methods.claim().send({ from: keyring.address, gas: 25000000000 });
 
-  const tokenInstance = new caver.kct.kip7(TOKEN_ADDRESS);
+  // await tokenInstance.transfer(AIRDROP_ADDRESS, ethers.parseEther('1000').toString(), {
+  //   from: keyring.address,
+  // });
+
   // await tokenInstance.transfer(
   //   '0x31b1da5926a0159b0c369e6f15756e9c666011e7',
   //   ethers.parseEther('1').toString(),
@@ -302,13 +372,13 @@ async function main() {
   //   }
   // );
 
-  await tokenInstance.balanceOf(AIRDROP_ADDRESS).then((res) => {
+  await tokenInstance.balanceOf(keyring.address).then((res) => {
     console.log('Balance:', res);
   });
 
-  await tokenInstance.balanceOf('0x31b1da5926a0159b0c369e6f15756e9c666011e7').then((res) => {
-    console.log('Balance:', res);
-  });
+  // await tokenInstance.balanceOf('0x31b1da5926a0159b0c369e6f15756e9c666011e7').then((res) => {
+  //   console.log('Balance:', res);
+  // });
 }
 
 // We recommend this pattern to be able to use async/await everywhere
