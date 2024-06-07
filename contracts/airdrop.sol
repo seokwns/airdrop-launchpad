@@ -16,7 +16,8 @@ contract AirDrop is Ownable {
 
     struct AirdropData {
         ClaimStatus status;
-        uint256 amount;
+        uint256 claimableAmount;
+        uint256 claimedAmount;
     }
 
     uint256 public startTimestamp;
@@ -68,15 +69,16 @@ contract AirDrop is Ownable {
             revert("ALREADY_CLAIMED");
         }
 
-        uint256 airdropAmount = airdrops[msg.sender].amount;
+        uint256 claimAmount = airdrops[msg.sender].claimableAmount;
         uint256 balance = tokenInstance.balanceOf(address(this));
-        require(balance >= airdropAmount, "INSUFFICIENT_BALANCE");
+        require(balance >= claimAmount, "INSUFFICIENT_BALANCE");
 
-        tokenInstance.transfer(msg.sender, airdropAmount);
-        airdrops[msg.sender].amount = 0;
+        tokenInstance.transfer(msg.sender, claimAmount);
+        airdrops[msg.sender].claimableAmount = 0;
+        airdrops[msg.sender].claimedAmount = claimAmount;
         airdrops[msg.sender].status = ClaimStatus.CLAIMED;
 
-        emit Claimed(msg.sender, airdropAmount);
+        emit Claimed(msg.sender, claimAmount);
     }
 
     function getAirdropData(
@@ -95,7 +97,8 @@ contract AirDrop is Ownable {
         }
         airdrops[_address] = AirdropData({
             status: ClaimStatus.CLAIMABLE,
-            amount: _amount
+            claimableAmount: _amount,
+            claimedAmount: 0
         });
     }
 
@@ -111,7 +114,8 @@ contract AirDrop is Ownable {
             }
             airdrops[_address[i]] = AirdropData({
                 status: ClaimStatus.CLAIMABLE,
-                amount: _amount[i]
+                claimableAmount: _amount[i],
+                claimedAmount: 0
             });
         }
     }
@@ -127,7 +131,8 @@ contract AirDrop is Ownable {
         address _address
     ) public onlyOwner {
         airdrops[_address].status = ClaimStatus.CANNOT_CLAIM;
-        airdrops[_address].amount = 0;
+        airdrops[_address].claimableAmount = 0;
+        airdrops[_address].claimedAmount = 0;
     }
 
     function transferTokenToOnwer() public onlyOwner {
