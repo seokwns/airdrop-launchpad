@@ -16,19 +16,22 @@ contract AirDrop is Ownable {
 
     struct AirdropData {
         ClaimStatus status;
-        uint256 claimableAmount;
-        uint256 claimedAmount;
+        uint256 amount;
     }
 
     uint256 public startTimestamp;
     uint256 public endTimestamp;
     mapping(address => AirdropData) private airdrops;
 
-    event Claimed(address indexed receiver, uint256 amount);
+    event Claimed(address indexed receiver, uint256 amount, uint256 timestamp);
     event AirdropStartTimeUpdated(uint256 newStartTime);
     event AirdropEndTimeUpdated(uint256 newEndTime);
 
+    error CannotClaim();
+    error AlreadyClaimed();
+
     constructor(address _tokenAddress, uint256 _startTimestamp, uint256 _endTimestamp) {
+        require(_startTimestamp < _endTimestamp, "INVALID_TIMESTAMP");
         tokenInstance = IKIP7(_tokenAddress);
         startTimestamp = _startTimestamp;
         endTimestamp = _endTimestamp;
@@ -53,32 +56,30 @@ contract AirDrop is Ownable {
     }
 
     function isEnded() public view returns (bool) {
-        return block.timestamp > endTimestamp;
+        return block.timestamp >= endTimestamp;
     }
 
     function claim() external {
         require(block.timestamp >= startTimestamp, "AIRDOP_NOT_STARTED");
-        require(block.timestamp <= endTimestamp, "AIRDROP_ENDED");
+        require(block.timestamp < endTimestamp, "AIRDROP_ENDED");
         
         ClaimStatus status = airdrops[msg.sender].status;
 
         if (status == ClaimStatus.CANNOT_CLAIM) {
-            revert("CANNOT_CLAIM");
+            revert CannotClaim();
         }
         else if (status == ClaimStatus.CLAIMED) {
-            revert("ALREADY_CLAIMED");
+            revert AlreadyClaimed();
         }
 
-        uint256 claimAmount = airdrops[msg.sender].claimableAmount;
+        uint256 claimAmount = airdrops[msg.sender].amount;
         uint256 balance = tokenInstance.balanceOf(address(this));
         require(balance >= claimAmount, "INSUFFICIENT_BALANCE");
 
         tokenInstance.transfer(msg.sender, claimAmount);
-        airdrops[msg.sender].claimableAmount = 0;
-        airdrops[msg.sender].claimedAmount = claimAmount;
         airdrops[msg.sender].status = ClaimStatus.CLAIMED;
 
-        emit Claimed(msg.sender, claimAmount);
+        emit Claimed(msg.sender, claimAmount, block.timestamp);
     }
 
     function getAirdropData(
@@ -97,8 +98,7 @@ contract AirDrop is Ownable {
         }
         airdrops[_address] = AirdropData({
             status: ClaimStatus.CLAIMABLE,
-            claimableAmount: _amount,
-            claimedAmount: 0
+            amount: _amount
         });
     }
 
@@ -114,8 +114,7 @@ contract AirDrop is Ownable {
             }
             airdrops[_address[i]] = AirdropData({
                 status: ClaimStatus.CLAIMABLE,
-                claimableAmount: _amount[i],
-                claimedAmount: 0
+                amount: _amount[i]
             });
         }
     }
@@ -130,9 +129,7 @@ contract AirDrop is Ownable {
     function deleteAirdropData(
         address _address
     ) public onlyOwner {
-        airdrops[_address].status = ClaimStatus.CANNOT_CLAIM;
-        airdrops[_address].claimableAmount = 0;
-        airdrops[_address].claimedAmount = 0;
+        delete airdrops[_address];
     }
 
     function transferTokenToOnwer() public onlyOwner {
