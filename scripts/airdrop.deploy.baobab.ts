@@ -42,6 +42,8 @@ async function main() {
     tokenContract._address,
     startTimestamp,
     endTimestamp,
+    30,
+    3,
   ]);
   await airdropContract.waitForDeployment();
 
@@ -49,15 +51,11 @@ async function main() {
   console.log(tokenContract._address, startTimestamp, endTimestamp);
   console.log(`deploy airdrop address: ${airdropContract.target}`);
 
-  // const proxyContract = await ethers.deployContract('OssifiableProxy', [
-  //   airdropContract.target,
-  //   DEPLOYER,
-  //   '0x00',
-  // ]);
-  // await proxyContract.waitForDeployment();
+  const proxyContract = await ethers.deployContract('OssifiableProxy', [airdropContract.target, DEPLOYER, '0x']);
+  await proxyContract.waitForDeployment();
 
-  // console.log();
-  // console.log(`deploy proxy address: ${proxyContract.target}`);
+  console.log();
+  console.log(`deploy proxy address: ${proxyContract.target}`);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
