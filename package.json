@@ -7,6 +7,7 @@
   "license": "MIT",
   "dependencies": {
     "@klaytn/contracts": "^1.0.6",
+    "@openzeppelin/contracts": "^5.0.2",
     "caver-js": "^1.11.0",
     "dotenv": "^16.4.5",
     "hardhat": "^2.22.4"
