@@ -2,10 +2,11 @@
 pragma solidity 0.8.24;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./lib/AccessControl.sol";
 import "./lib/UnstructuredStorage.sol";
 
-contract AirDrop is AccessControl {
+contract AirDrop is AccessControl, ReentrancyGuard{
     using UnstructuredStorage for bytes32;
 
     struct AirdropData {
@@ -61,7 +62,7 @@ contract AirDrop is AccessControl {
         return block.timestamp >= endTimestamp;
     }
 
-    function claim() external {
+    function claim() external nonReentrant {
         require(block.timestamp >= startTimestamp, "AIRDOP_NOT_STARTED");
         require(block.timestamp < endTimestamp, "AIRDROP_ENDED");
 
