@@ -31,7 +31,7 @@ contract AirdropFactory is AccessControl {
         treasury = _treasury;
     }
 
-    function createAirDrop(
+    function createAirdrop(
         address token,
         uint256 startTimestamp, 
         uint256 endTimestamp,
