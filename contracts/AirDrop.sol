@@ -77,7 +77,7 @@ contract Airdrop is AccessControl, ReentrancyGuard{
         return index > 0 && index <= dataLength;
     }
 
-    function getFullyClaimedAccounts() public view returns (address[] memory accounts, AirdropData[] memory data) {
+    function getFullyClaimedAccounts() public view returns (AirdropData[] memory data) {
         uint256 count = 0;
         for (uint256 i = 1; i <= dataLength; i++) {
             if (airdropData[i].claimedAmount == airdropData[i].amount) {
@@ -85,13 +85,11 @@ contract Airdrop is AccessControl, ReentrancyGuard{
             }
         }
 
-        accounts = new address[](count);
         data = new AirdropData[](count);
 
         uint256 index = 0;
         for (uint256 i = 1; i <= dataLength; i++) {
             if (airdropData[i].claimedAmount == airdropData[i].amount) {
-                accounts[index] = airdropData[i].account;
                 data[index] = airdropData[i];
                 index++;
             }
