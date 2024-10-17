@@ -28,6 +28,11 @@ const config: HardhatUserConfig = {
       gasPrice: 250000000000,
       accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
     },
+    endurance: {
+      url: 'http://20.197.13.207:8545',
+      chainId: 648,
+      accounts: [PRIVATE_KEY!],
+    },
   },
   etherscan: {
     apiKey: {
@@ -49,6 +54,14 @@ const config: HardhatUserConfig = {
         urls: {
           apiURL: 'https://api-cypress.klaytnscope.com/api',
           browserURL: 'https://klaytnscope.com',
+        },
+      },
+      {
+        network: 'endurance',
+        chainId: 648,
+        urls: {
+          apiURL: 'https://explorer-endurance.fusionist.io/api',
+          browserURL: 'https://explorer-endurance.fusionist.io',
         },
       },
     ],
