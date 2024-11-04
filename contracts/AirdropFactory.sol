@@ -19,18 +19,21 @@ contract AirdropFactory is AccessControl {
     mapping(address => uint256) public airdrops;
     mapping(uint256 => AirdropInfo) public airdropInfo;
 
-    address public treasury;
-
     event AirdropCreated(address indexed airdrop, address indexed token, uint256 startTimestamp, uint256 endTimestamp);
 
     constructor() {
         _grantRole(ADMIN_ROLE, msg.sender);
     }
 
-    function setTreasury(address _treasury) public onlyRole(ADMIN_ROLE) {
-        treasury = _treasury;
-    }
-
+    /**
+     * @notice 에어드랍 컨트랙트를 생성합니다.
+     * @param token 에어드랍 토큰 주소
+     * @param startTimestamp 에어드랍 시작 시간
+     * @param endTimestamp 에어드랍 종료 시간
+     * @param tgePercent TGE 토큰 비율
+     * @param vestingCount TGE 이후 클레임 횟수
+     * @return 생성된 에어드랍 컨트랙트의 id
+     */
     function createAirdrop(
         address token,
         uint256 startTimestamp, 
@@ -59,6 +62,10 @@ contract AirdropFactory is AccessControl {
         return airdropLength;
     }
 
+    /**
+     * @notice 모든 에어드랍 정보를 조회합니다.
+     * @return 모든 에어드랍 정보
+     */
     function getAllAirdrops() external view returns (AirdropInfo[] memory) {
         AirdropInfo[] memory result = new AirdropInfo[](airdropLength);
         for (uint256 i = 1; i <= airdropLength; i++) {
@@ -67,7 +74,11 @@ contract AirdropFactory is AccessControl {
         return result;
     }
 
-    function getAirdrop(address airdrop) external view returns (AirdropInfo memory) {
+    /**
+     * @notice 특정 에어드랍 정보를 조회합니다.
+     * @param airdrop 에어드랍 주소
+     */
+    function getAirdropByAddress(address airdrop) external view returns (AirdropInfo memory) {
         return airdropInfo[airdrops[airdrop]];
     }
 }
