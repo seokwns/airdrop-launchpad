@@ -73,10 +73,29 @@ contract Airdrop is AccessControl, ReentrancyGuard{
         return block.timestamp >= endTimestamp;
     }
 
+    /**
+     * @notice 에어드랍 데이터가 유효한지 확인합니다.
+     * @param index 에어드랍 데이터 인덱스
+     */
     function isValidAirdropId(uint256 index) public view returns (bool) {
         return index > 0 && index <= dataLength;
     }
 
+    /**
+     * @notice 전체 에어드랍 데이터를 조회합니다.
+     * @return data 전체 에어드랍 데이터
+     */
+    function getAllAirdropData() public view returns (AirdropData[] memory data) {
+        data = new AirdropData[](dataLength);
+        for (uint256 i = 1; i <= dataLength; i++) {
+            data[i - 1] = airdropData[i];
+        }
+    }
+
+    /**
+     * @notice 클레임 완료된 계정을 조회합니다.
+     * @return data 클레임 완료된 계정 데이터
+     */
     function getFullyClaimedAccounts() public view returns (AirdropData[] memory data) {
         uint256 count = 0;
         for (uint256 i = 1; i <= dataLength; i++) {
@@ -238,6 +257,11 @@ contract Airdrop is AccessControl, ReentrancyGuard{
         }
     }
 
+    /**
+     * @notice 에어드랍 데이터를 업데이트합니다.
+     * @param _address 계정 주소
+     * @param _airdropData 에어드랍 데이터
+     */
     function updateAirdropData(address _address, AirdropData memory _airdropData) public onlyRole(ADMIN_ROLE) {
         uint256 index = airdropIndex[_address];
         require(index > 0, "NO_AIRDROP_DATA");
@@ -245,6 +269,10 @@ contract Airdrop is AccessControl, ReentrancyGuard{
         airdropData[index] = _airdropData;
     }
 
+    /**
+     * @notice 에어드랍 데이터를 삭제합니다.
+     * @param _address 계정 주소
+     */
     function deleteAirdropData(address _address) public onlyRole(ADMIN_ROLE) {
         uint256 index = airdropIndex[_address];
         require(index > 0, "NO_AIRDROP_DATA");
