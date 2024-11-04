@@ -5,6 +5,11 @@
   "repository": "https://github.com/seokwns/airdrop-launchpad.git",
   "author": "seokwns <seokjun0915@icloud.com>",
   "license": "MIT",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "clean": "npx hardhat clean",
+    "test": "npx hardhat test"
+  },
   "dependencies": {
     "@klaytn/contracts": "^1.0.6",
     "@openzeppelin/contracts": "^5.0.2",
