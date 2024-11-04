@@ -62,6 +62,23 @@ async function main() {
   // });
 
   /**
+   * Batch insert airdrop data
+   */
+  console.log('Batch insert airdrop data');
+  await airdrop.batchInsertAirdropData(
+    [
+      '0xe4E61ce60c53A2B6b08d81d1445bEdF7F90f3FE6',
+      '0xcA62094677bCBB691317D08F481855DEc3846f92',
+      '0xF783145cf9cb337e1017EA65C6AFd7d8fdB04e6C',
+    ],
+    [ethers.parseEther('300'), ethers.parseEther('200'), ethers.parseEther('100')],
+    {
+      gasLimit: 1000000,
+      gasPrice: 10000000,
+    }
+  );
+
+  /**
    * Get airdrop data from factory
    */
   // console.log();
@@ -75,6 +92,14 @@ async function main() {
   // allFactoryAirdropData.forEach((data, index) => {
   //   console.log(`Airdrop ${index + 1}: ${data}`);
   // });
+
+  /**
+   * Get total airdrop amount
+   */
+  // console.log();
+  // console.log('get total airdrop amount');
+  // const totalAirdropAmount = await airdrop.totalAirdropAmount();
+  // console.log(`total airdrop amount: ${ethers.formatEther(totalAirdropAmount)}`);
 
   /**
    * Get airdrop data
@@ -111,6 +136,22 @@ async function main() {
   // accountData.forEach((data, index) => {
   //   console.log(`Account ${index + 1}: ${data}`);
   // });
+
+  /**
+   * Get airdrop data length
+   */
+  console.log('Get airdrop data length');
+  const airdropDataLength = await airdrop.dataLength();
+  console.log(`Airdrop data length: ${airdropDataLength}`);
+
+  /**
+   * Get all airdrop data
+   */
+  console.log('Get all airdrop data');
+  for (let i = 1; i <= airdropDataLength; i++) {
+    const data = await airdrop.airdropData(i);
+    console.log(`Airdrop ${i}: ${data}`);
+  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
