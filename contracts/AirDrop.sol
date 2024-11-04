@@ -5,13 +5,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./lib/AccessControl.sol";
 
-contract Airdrop is AccessControl, ReentrancyGuard{
-
+contract Airdrop is AccessControl, ReentrancyGuard {
     struct AirdropData {
         address account;
         uint256 amount;
         uint256 claimedAmount;
-        uint64  claimIndex;
+        uint64 claimIndex;
     }
 
     uint256 public constant PRECISION = 1e12;
@@ -20,7 +19,7 @@ contract Airdrop is AccessControl, ReentrancyGuard{
     uint256 public startTimestamp;
     uint256 public endTimestamp;
     uint256 public tgePercent;
-    uint64  public vestingCount;
+    uint64 public vestingCount;
     uint256 public vestingTerm;
 
     uint256 public totalAirdropAmount;
@@ -42,11 +41,11 @@ contract Airdrop is AccessControl, ReentrancyGuard{
      * @param _vestingCount tge 이후 클레임 횟수
      */
     constructor(
-        address _tokenAddress, 
-        uint256 _startTimestamp, 
-        uint256 _endTimestamp, 
-        uint256 _tgePercent, 
-        uint64  _vestingCount 
+        address _tokenAddress,
+        uint256 _startTimestamp,
+        uint256 _endTimestamp,
+        uint256 _tgePercent,
+        uint64 _vestingCount
     ) {
         require(_startTimestamp < _endTimestamp, "INVALID_TIMESTAMP");
         tokenAddress = _tokenAddress;
@@ -153,12 +152,12 @@ contract Airdrop is AccessControl, ReentrancyGuard{
         claimIndex = uint64(term / vestingTerm);
 
         uint256 claimableIndex = claimIndex - airdrop.claimIndex;
-        uint256 vestingAmountPerTerm = airdrop.amount * PRECISION * (100 - tgePercent) / 100 / vestingCount;
-        claimAmount = vestingAmountPerTerm * claimableIndex / PRECISION;
+        uint256 vestingAmountPerTerm = (airdrop.amount * PRECISION * (100 - tgePercent)) / 100 / vestingCount;
+        claimAmount = (vestingAmountPerTerm * claimableIndex) / PRECISION;
 
         // TGE를 클레임하지 않은 경우, TGE 금액 추가
         if (airdrop.claimIndex == 0 && airdrop.claimedAmount == 0) {
-            uint256 tgeAmountX12 = airdrop.amount * PRECISION * tgePercent / 100;
+            uint256 tgeAmountX12 = (airdrop.amount * PRECISION * tgePercent) / 100;
             claimAmount += tgeAmountX12 / PRECISION;
         }
 
@@ -200,7 +199,11 @@ contract Airdrop is AccessControl, ReentrancyGuard{
      * @return claimedAmount 클레임된 금액
      * @return claimableAmount 클레임 가능한 금액
      */
-    function getAirdropData() public view returns (uint256 totalAmount, uint256 claimedAmount, uint256 claimableAmount) {
+    function getAirdropData()
+        public
+        view
+        returns (uint256 totalAmount, uint256 claimedAmount, uint256 claimableAmount)
+    {
         return getAirdropDataByAddress(msg.sender);
     }
 
@@ -211,7 +214,9 @@ contract Airdrop is AccessControl, ReentrancyGuard{
      * @return claimedAmount 클레임된 금액
      * @return claimableAmount 클레임 가능한 금액
      */
-    function getAirdropDataByAddress(address _address) public view returns (uint256 totalAmount, uint256 claimedAmount, uint256 claimableAmount) {
+    function getAirdropDataByAddress(
+        address _address
+    ) public view returns (uint256 totalAmount, uint256 claimedAmount, uint256 claimableAmount) {
         uint256 index = airdropIndex[_address];
         require(isValidAirdropId(index), "NO_AIRDROP_DATA");
 
@@ -234,12 +239,7 @@ contract Airdrop is AccessControl, ReentrancyGuard{
         dataLength++;
         airdropIndex[_account] = dataLength;
 
-        airdropData[dataLength] = AirdropData({
-            account: _account,
-            amount: _amount,
-            claimedAmount: 0,
-            claimIndex: 0
-        });
+        airdropData[dataLength] = AirdropData({account: _account, amount: _amount, claimedAmount: 0, claimIndex: 0});
 
         totalAirdropAmount += _amount;
     }
@@ -253,7 +253,21 @@ contract Airdrop is AccessControl, ReentrancyGuard{
         require(_accounts.length == _amounts.length, "INVALID_INPUT_DATA");
 
         for (uint256 i = 0; i < _accounts.length; i++) {
-            insertAirdropData(_accounts[i], _amounts[i]);
+            // insertAirdropData(_accounts[i], _amounts[i]);
+            uint256 index = airdropIndex[_accounts[i]];
+            require(index == 0, "DUPLICATED_DATA");
+
+            dataLength++;
+            airdropIndex[_accounts[i]] = dataLength;
+
+            airdropData[dataLength] = AirdropData({
+                account: _accounts[i],
+                amount: _amounts[i],
+                claimedAmount: 0,
+                claimIndex: 0
+            });
+
+            totalAirdropAmount += _amounts[i];
         }
     }
 
@@ -278,6 +292,7 @@ contract Airdrop is AccessControl, ReentrancyGuard{
         require(index > 0, "NO_AIRDROP_DATA");
 
         delete airdropData[index];
+        delete airdropIndex[_address];
     }
 
     /**
@@ -297,7 +312,7 @@ contract Airdrop is AccessControl, ReentrancyGuard{
         vestingTerm = (endTimestamp - startTimestamp) / (vestingCount + 1);
         emit AirdropStartTimeUpdated(_startTimestamp);
     }
-    
+
     /**
      * @notice 에어드랍 종료 시간을 업데이트합니다. 컨트랙트 owner만 호출 가능.
      * @param _endTimestamp 새로운 에어드랍 종료 시간
