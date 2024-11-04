@@ -140,7 +140,10 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
         require(info.amount > 0, "Airdrop: No airdrop available");
 
         uint256 claimAmount = (info.amount * immediateClaimPercentage) / PERCENT_PRECISION;
+        uint256 burnAmount = info.amount - claimAmount;
         token.transfer(receiver, claimAmount);
+        token.transfer(address(0), burnAmount);
+
         info.claimed = true;
         info.claimedAmount = claimAmount;
 
