@@ -17,6 +17,8 @@ describe("Launchpad", () => {
   let startBlock: number;
   let endBlock: number;
 
+  const PERCENT_PRECISION = 1e8;
+
   before(async () => {
     [deployer, tester1, tester2, tester3] = await ethers.getSigners();
     token = await ethers.deployContract("TestToken", ["Test Token", "TST"]);
@@ -53,6 +55,9 @@ describe("Launchpad", () => {
     launchpadAmount = ethers.parseEther("20000000");
     await token.approve(launchpad.target, launchpadAmount);
     await expect(launchpad.updateLaunchpadAmount(launchpadAmount)).to.be.emit(launchpad, "LaunchpadAmountUpdated");
+
+    const amount = await launchpad.amount();
+    expect(amount).to.equal(launchpadAmount);
   });
 
   it("Should not claim before launchpad starts", async () => {
@@ -65,9 +70,19 @@ describe("Launchpad", () => {
     const beforeBalance = await token.balanceOf(tester1.address);
     await expect(launchpad.connect(tester1).claim({ value })).to.be.emit(launchpad, "Claimed");
 
-    const afterBalance = await token.balanceOf(tester1.address);
     // 앞선 테스트에서 claimRatio 를 200으로 변경했으므로, 100 * 200 / 1 = 20000 이어야 함
-    expect(afterBalance).to.equal(beforeBalance + (value * claimRatio) / ethers.parseEther("1"));
+    const expected = ethers.parseEther("20000");
+    const afterBalance = await token.balanceOf(tester1.address);
+    expect(afterBalance).to.equal(expected);
+
+    const launchpadBalance = await token.balanceOf(launchpad.target);
+    expect(launchpadBalance).to.equal(launchpadAmount - afterBalance);
+  });
+
+  it("Should get progress", async () => {
+    const progress = await launchpad.getProgress();
+    const expected = ((launchpadAmount - ethers.parseEther("20000")) * BigInt(PERCENT_PRECISION)) / launchpadAmount;
+    expect(progress).to.equal(expected);
   });
 
   it("Should not claim after launchpad ends", async () => {
