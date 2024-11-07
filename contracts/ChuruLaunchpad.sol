@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./lib/AccessControl.sol";
 
 contract ChuruLaunchpad is AccessControl, ReentrancyGuard {
+    uint32 public constant PERCENT_PRECISION = 1e8;
     address public churu;
     uint256 public amount;
     uint256 public claimRatio;
@@ -68,6 +69,8 @@ contract ChuruLaunchpad is AccessControl, ReentrancyGuard {
             IERC20(churu).transferFrom(msg.sender, address(this), diff);
         }
 
+        amount = _amount;
+
         emit LaunchpadAmountUpdated(_amount);
     }
 
@@ -82,6 +85,11 @@ contract ChuruLaunchpad is AccessControl, ReentrancyGuard {
         IERC20(churu).transfer(msg.sender, churuAmount);
 
         emit Claimed(msg.sender, churuAmount);
+    }
+
+    function getProgress() external view returns (uint256) {
+        uint256 remain = IERC20(churu).balanceOf(address(this));
+        return (remain * PERCENT_PRECISION) / amount;
     }
 
     function close() external onlyRole(ADMIN_ROLE) {
