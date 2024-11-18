@@ -93,6 +93,11 @@ describe("Launchpad", () => {
       .to.be.emit(launchpad, "ExceedCapRefunded");
   });
 
+  it("Should revert if exceed account cap", async () => {
+    const value = ethers.parseEther("200");
+    expect(launchpad.connect(tester1).claim({ value })).to.be.revertedWith("Launchpad: exceed cap");
+  });
+
   it("Should refund if claim value is not enough", async () => {
     const value = ethers.parseEther("200");
     const beforeBalance = await token.balanceOf(tester2.address);
@@ -107,6 +112,11 @@ describe("Launchpad", () => {
 
     const afterBalance = await token.balanceOf(tester2.address);
     expect(afterBalance).to.equal(beforeBalance + claimAmount);
+  });
+
+  it("Should 0 progress if all token saled", async () => {
+    const progress = await launchpad.getProgress();
+    expect(progress).to.equal(0);
   });
 
   it("Should not claim after launchpad ends", async () => {
