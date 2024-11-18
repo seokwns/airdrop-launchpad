@@ -90,6 +90,8 @@ contract ChuruLaunchpad is AccessControl, ReentrancyGuard {
         uint256 _value = msg.value;
         require(_value > 0 && _value <= ACCOUNT_CAP, "Launchpad: invalid value");
 
+        require(submitAmount[msg.sender] < ACCOUNT_CAP, "Launchpad: exceed cap");
+
         uint256 value = ACCOUNT_CAP - submitAmount[msg.sender];
         if (_value <= value) {
             value = _value;
