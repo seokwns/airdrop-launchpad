@@ -31,6 +31,7 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
     event AirdropClaimed(address indexed user, uint256 amount);
     event Lockup(address indexed user, uint256 lockupEndTimestamp);
     event AirdropClosed();
+    event Payouted();
 
     constructor(
         address _token,
@@ -184,8 +185,18 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
         emit AirdropClaimed(receiver, info.amount);
     }
 
-    function closeAirdrop() external onlyRole(ADMIN_ROLE) {
-        token.transfer(msg.sender, token.balanceOf(address(this)));
+    function closeAirdrop(address remainReceiver) external onlyRole(ADMIN_ROLE) {
+        token.transfer(remainReceiver, token.balanceOf(address(this)));
         emit AirdropClosed();
+    }
+
+    function payout(address receiver) external onlyRole(ADMIN_ROLE) {
+        uint256 balance = address(this).balance;
+        if (balance > 0) {
+            (bool success, ) = payable(receiver).call{value: balance}("");
+            require(success, "Airdrop: Transfer failed");
+        }
+
+        emit Payouted();
     }
 }
