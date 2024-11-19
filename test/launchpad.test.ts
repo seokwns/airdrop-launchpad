@@ -2,10 +2,9 @@ import { ethers } from "hardhat";
 import { ChuruLaunchpad, TestToken } from "../typechain-types";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { expect } from "chai";
-import { mine, mineUpTo } from "@nomicfoundation/hardhat-network-helpers";
-import { clear } from "node:console";
+import { mineUpTo } from "@nomicfoundation/hardhat-network-helpers";
 
-describe("Launchpad", () => {
+describe("ChuruTokenSale", () => {
   let launchpad: ChuruLaunchpad;
   let deployer: HardhatEthersSigner;
   let tester1: HardhatEthersSigner;
@@ -30,7 +29,7 @@ describe("Launchpad", () => {
 
   it("Should deploy contract", async () => {
     [deployer, tester1, tester2, tester3] = await ethers.getSigners();
-    launchpad = await ethers.deployContract("ChuruLaunchpad", [token.target]);
+    launchpad = await ethers.deployContract("ChuruTokenSale", [token.target]);
     await launchpad.waitForDeployment();
   });
 
