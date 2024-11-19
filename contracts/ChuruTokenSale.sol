@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "./lib/AccessControl.sol";
 
-contract ChuruLaunchpad is AccessControl, ReentrancyGuard {
+contract ChuruTokenSale is AccessControl, ReentrancyGuard {
     uint32 public constant PERCENT_PRECISION = 1e8;
     uint256 public constant ACCOUNT_CAP = 200 ether;
 
