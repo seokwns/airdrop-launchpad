@@ -40,8 +40,8 @@ contract ChuruTokenSale is AccessControl, ReentrancyGuard {
         uint64 _startBlock,
         uint64 _endBlock
     ) external onlyRole(ADMIN_ROLE) {
-        require(_startBlock > block.number, "Launchpad: invalid start block");
-        require(_endBlock > _startBlock, "Launchpad: invalid end block");
+        require(_startBlock > block.number, "TokenSale: invalid start block");
+        require(_endBlock > _startBlock, "TokenSale: invalid end block");
 
         amount = _amount;
         claimRatio = _claimRatio;
@@ -54,7 +54,7 @@ contract ChuruTokenSale is AccessControl, ReentrancyGuard {
     }
 
     function updatePeriod(uint64 _startBlock, uint64 _endBlock) external onlyRole(ADMIN_ROLE) {
-        require(_endBlock > _startBlock, "Launchpad: invalid period");
+        require(_endBlock > _startBlock, "TokenSale: invalid period");
 
         startBlock = _startBlock;
         endBlock = _endBlock;
@@ -83,14 +83,14 @@ contract ChuruTokenSale is AccessControl, ReentrancyGuard {
     }
 
     function claim() external payable {
-        require(block.number >= startBlock, "Launchpad: not started");
-        require(block.number <= endBlock, "Launchpad: ended");
-        require(IERC20(churu).balanceOf(address(this)) > 0, "Launchpad: no churu");
+        require(block.number >= startBlock, "TokenSale: not started");
+        require(block.number <= endBlock, "TokenSale: ended");
+        require(IERC20(churu).balanceOf(address(this)) > 0, "TokenSale: no churu");
 
         uint256 _value = msg.value;
-        require(_value > 0 && _value <= ACCOUNT_CAP, "Launchpad: invalid value");
+        require(_value > 0 && _value <= ACCOUNT_CAP, "TokenSale: invalid value");
 
-        require(submitAmount[msg.sender] < ACCOUNT_CAP, "Launchpad: exceed cap");
+        require(submitAmount[msg.sender] < ACCOUNT_CAP, "TokenSale: exceed cap");
 
         uint256 value = ACCOUNT_CAP - submitAmount[msg.sender];
         if (_value <= value) {
@@ -98,7 +98,7 @@ contract ChuruTokenSale is AccessControl, ReentrancyGuard {
         } else {
             uint256 refundAmount = _value - value;
             (bool success, ) = msg.sender.call{value: refundAmount}("");
-            require(success, "Launchpad: transfer failed");
+            require(success, "TokenSale: transfer failed");
 
             emit ExceedCapRefunded(msg.sender, refundAmount);
         }
@@ -110,7 +110,7 @@ contract ChuruTokenSale is AccessControl, ReentrancyGuard {
             uint256 refundAmount = (diff * 1e18) / claimRatio;
 
             (bool success, ) = msg.sender.call{value: refundAmount}("");
-            require(success, "Launchpad: transfer failed");
+            require(success, "TokenSale: transfer failed");
             churuAmount = balance;
 
             emit InsufficientChuruRefunded(msg.sender, refundAmount);
@@ -141,7 +141,7 @@ contract ChuruTokenSale is AccessControl, ReentrancyGuard {
         uint256 balance = address(this).balance;
         if (balance > 0) {
             (bool success, ) = payable(msg.sender).call{value: balance}("");
-            require(success, "Launchpad: transfer failed");
+            require(success, "TokenSale: transfer failed");
         }
 
         uint256 churuBalance = IERC20(churu).balanceOf(address(this));
