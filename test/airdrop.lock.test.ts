@@ -250,4 +250,27 @@ describe("AirdropLock", () => {
       expect(airdropLock.connect(tester1).lockup()).to.be.revertedWith("Airdrop: Airdrop ended");
     });
   });
+
+  describe("Airdrop Close", () => {
+    let airdropLock: AirdropLock;
+
+    before(async () => {
+      airdropLock = await deployAirdropLock(testToken.target);
+      testToken.mint(airdropLock.target, ethers.parseEther("1000"));
+      const addresses = [tester1.address, tester2.address];
+      const amounts = [ethers.parseEther("100"), ethers.parseEther("200")];
+      await airdropLock.batchInsertAirdropData(addresses, amounts);
+    });
+
+    it("Should close airdrop", async () => {
+      const reaminReceiver = tester1.address;
+      const beforeBalance = await testToken.balanceOf(reaminReceiver);
+
+      const contractBalance = await testToken.balanceOf(airdropLock.target);
+      await expect(airdropLock.closeAirdrop(reaminReceiver)).to.emit(airdropLock, "AirdropClosed");
+
+      const afterBalance = await testToken.balanceOf(reaminReceiver);
+      expect(afterBalance).to.eq(beforeBalance + contractBalance);
+    });
+  });
 });
