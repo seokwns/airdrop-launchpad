@@ -8,49 +8,35 @@ import "./lib/AccessControl.sol";
 contract AirdropLock is AccessControl, ReentrancyGuard {
     struct AirdropInfo {
         uint256 amount;
+        uint256 instantAmount;
         uint256 claimedAmount;
         uint64 lockupEndTimestamp;
         bool claimed;
     }
 
     uint16 public constant PERCENT_PRECISION = 1e4;
+    address public constant BURNNER_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
     IERC20 public token;
 
     uint64 public startTimestamp;
     uint64 public endTimestamp;
     uint64 public lockupPeriod;
-    uint16 public immediateClaimPercentage;
 
     uint256 public dataLength;
     mapping(uint256 => AirdropInfo) public airdropInfo;
     mapping(address => uint256) public airdropIndex;
 
     uint256 public totalAirdropAmount;
+    uint256 public burnAmount;
 
     event AirdropClaimed(address indexed user, uint256 amount);
     event Lockup(address indexed user, uint256 lockupEndTimestamp);
     event AirdropClosed();
     event Payouted();
+    event Burned(uint256 amount);
 
-    constructor(
-        address _token,
-        uint64 _startTimestamp,
-        uint64 _endTimestamp,
-        uint64 _lockupPeriod,
-        uint16 _immediateClaimPercentage
-    ) {
-        require(_token != address(0), "Airdrop: Invalid token address");
-        require(_startTimestamp < _endTimestamp, "Airdrop: Invalid start and end timestamp");
-        require(_endTimestamp < _startTimestamp + _lockupPeriod, "Airdrop: Invalid lockup period");
-        require(_immediateClaimPercentage <= PERCENT_PRECISION, "Airdrop: Invalid immediate claim percentage");
-
-        token = IERC20(_token);
-        startTimestamp = _startTimestamp;
-        endTimestamp = _endTimestamp;
-        immediateClaimPercentage = _immediateClaimPercentage;
-        lockupPeriod = _lockupPeriod;
-
+    constructor() {
         _grantRole(ADMIN_ROLE, msg.sender);
     }
 
@@ -60,8 +46,20 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
         _;
     }
 
-    function setImmediateClaimPercentage(uint16 _immediateClaimPercentage) external onlyRole(ADMIN_ROLE) {
-        immediateClaimPercentage = _immediateClaimPercentage;
+    function initialize(
+        address _token,
+        uint64 _startTimestamp,
+        uint64 _endTimestamp,
+        uint64 _lockupPeriod
+    ) external onlyRole(ADMIN_ROLE) {
+        require(_token != address(0), "Airdrop: Invalid token address");
+        require(_startTimestamp < _endTimestamp, "Airdrop: Invalid start and end timestamp");
+        require(_endTimestamp < _startTimestamp + _lockupPeriod, "Airdrop: Invalid lockup period");
+
+        token = IERC20(_token);
+        startTimestamp = _startTimestamp;
+        endTimestamp = _endTimestamp;
+        lockupPeriod = _lockupPeriod;
     }
 
     function setLockupPeriod(uint64 _lockupPeriod) external onlyRole(ADMIN_ROLE) {
@@ -80,21 +78,27 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
         return airdropInfo[airdropIndex[msg.sender]];
     }
 
-    function insertAirdropData(address receiver, uint256 amount) external onlyRole(ADMIN_ROLE) {
+    function getAirdropInfo(address account) external view returns (AirdropInfo memory) {
+        return airdropInfo[airdropIndex[account]];
+    }
+
+    function insertAirdropData(address receiver, uint256 amount, uint256 instantAmount) external onlyRole(ADMIN_ROLE) {
         require(airdropIndex[receiver] == 0, "Airdrop: Airdrop data already exists");
 
         dataLength++;
         airdropIndex[receiver] = dataLength;
-        airdropInfo[dataLength] = AirdropInfo(amount, 0, 0, false);
+        airdropInfo[dataLength] = AirdropInfo(amount, instantAmount, 0, 0, false);
 
         totalAirdropAmount += amount;
     }
 
     function batchInsertAirdropData(
         address[] calldata receivers,
-        uint256[] calldata amounts
+        uint256[] calldata amounts,
+        uint256[] calldata instantAmounts
     ) external onlyRole(ADMIN_ROLE) {
         require(receivers.length == amounts.length, "Airdrop: Receivers and amounts length mismatch");
+        require(receivers.length == instantAmounts.length, "Airdrop: Receivers and instant amounts length mismatch");
 
         for (uint256 i = 0; i < receivers.length; i++) {
             address receiver = receivers[i];
@@ -104,7 +108,7 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
 
             dataLength++;
             airdropIndex[receiver] = dataLength;
-            airdropInfo[dataLength] = AirdropInfo(amount, 0, 0, false);
+            airdropInfo[dataLength] = AirdropInfo(amount, instantAmounts[i], 0, 0, false);
 
             totalAirdropAmount += amount;
         }
@@ -131,24 +135,23 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
         delete airdropInfo[index];
     }
 
-    function claimAirdrop() external onlyAirdropOpen nonReentrant {
+    function claim() external onlyAirdropOpen nonReentrant {
         address receiver = msg.sender;
         uint256 index = airdropIndex[receiver];
         require(index > 0, "Airdrop: Airdrop data not found");
 
         AirdropInfo storage info = airdropInfo[index];
         require(!info.claimed, "Airdrop: Airdrop already claimed");
-        require(info.amount > 0, "Airdrop: No airdrop available");
+        require(info.instantAmount > 0, "Airdrop: No airdrop available");
+        require(info.lockupEndTimestamp == 0, "Airdrop: Lockup already set");
 
-        uint256 claimAmount = (info.amount * immediateClaimPercentage) / PERCENT_PRECISION;
-        uint256 burnAmount = info.amount - claimAmount;
-        token.transfer(receiver, claimAmount);
-        token.transfer(address(0), burnAmount);
-
+        token.transfer(receiver, info.instantAmount);
         info.claimed = true;
-        info.claimedAmount = claimAmount;
+        info.claimedAmount = info.instantAmount;
 
-        emit AirdropClaimed(receiver, claimAmount);
+        burnAmount += info.amount - info.instantAmount;
+
+        emit AirdropClaimed(receiver, info.instantAmount);
     }
 
     function lockup() external onlyAirdropOpen nonReentrant {
@@ -159,6 +162,7 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
         AirdropInfo storage info = airdropInfo[index];
         require(!info.claimed, "Airdrop: Airdrop already claimed");
         require(info.amount > 0, "Airdrop: No airdrop available");
+        require(info.lockupEndTimestamp == 0, "Airdrop: Lockup already set");
 
         info.lockupEndTimestamp = uint64(block.timestamp + lockupPeriod);
 
@@ -185,8 +189,21 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
         emit AirdropClaimed(receiver, info.amount);
     }
 
-    function closeAirdrop(address remainReceiver) external onlyRole(ADMIN_ROLE) {
-        token.transfer(remainReceiver, token.balanceOf(address(this)));
+    function burn() external onlyRole(ADMIN_ROLE) {
+        require(burnAmount > 0, "Airdrop: No amount to burn");
+
+        for (uint256 i = 1; i <= dataLength; i++) {
+            if (!airdropInfo[i].claimed && airdropInfo[i].lockupEndTimestamp == 0) {
+                burnAmount += airdropInfo[i].amount;
+            }
+        }
+
+        token.transfer(BURNNER_ADDRESS, burnAmount);
+        emit Burned(burnAmount);
+    }
+
+    function closeAirdrop() external onlyRole(ADMIN_ROLE) {
+        endTimestamp = uint64(block.timestamp);
         emit AirdropClosed();
     }
 
