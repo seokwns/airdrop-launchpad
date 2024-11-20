@@ -31,6 +31,13 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
     uint256 public burnAmount;
     uint256 public lockupAmount;
 
+    event Initialized(
+        IERC20 token,
+        uint256 totalAirdropAmount,
+        uint64 startTimestamp,
+        uint64 endTimestamp,
+        uint64 lockupPeriod
+    );
     event AirdropClaimed(address indexed user, uint256 amount);
     event Lockup(address indexed user, uint256 lockupEndTimestamp);
     event AirdropClosed();
@@ -61,6 +68,10 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
         startTimestamp = _startTimestamp;
         endTimestamp = _endTimestamp;
         lockupPeriod = _lockupPeriod;
+
+        token.transferFrom(msg.sender, address(this), totalAirdropAmount);
+
+        emit Initialized(token, totalAirdropAmount, _startTimestamp, _endTimestamp, _lockupPeriod);
     }
 
     function setLockupPeriod(uint64 _lockupPeriod) external onlyRole(ADMIN_ROLE) {
