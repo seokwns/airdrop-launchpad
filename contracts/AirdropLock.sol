@@ -29,6 +29,7 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
 
     uint256 public totalAirdropAmount;
     uint256 public burnAmount;
+    uint256 public lockupAmount;
 
     event AirdropClaimed(address indexed user, uint256 amount);
     event Lockup(address indexed user, uint256 lockupEndTimestamp);
@@ -166,6 +167,8 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
 
         info.lockupEndTimestamp = uint64(block.timestamp + lockupPeriod);
 
+        lockupAmount += info.amount;
+
         emit Lockup(receiver, info.lockupEndTimestamp);
     }
 
@@ -189,21 +192,12 @@ contract AirdropLock is AccessControl, ReentrancyGuard {
         emit AirdropClaimed(receiver, info.amount);
     }
 
-    function burn() external onlyRole(ADMIN_ROLE) {
-        require(burnAmount > 0, "Airdrop: No amount to burn");
-
-        for (uint256 i = 1; i <= dataLength; i++) {
-            if (!airdropInfo[i].claimed && airdropInfo[i].lockupEndTimestamp == 0) {
-                burnAmount += airdropInfo[i].amount;
-            }
-        }
-
-        token.transfer(BURNNER_ADDRESS, burnAmount);
-        emit Burned(burnAmount);
-    }
-
     function closeAirdrop() external onlyRole(ADMIN_ROLE) {
-        endTimestamp = uint64(block.timestamp);
+        require(block.timestamp >= endTimestamp, "Airdrop: Airdrop not ended");
+
+        burnAmount = totalAirdropAmount - lockupAmount;
+        token.transfer(BURNNER_ADDRESS, burnAmount);
+
         emit AirdropClosed();
     }
 
